@@ -1,21 +1,25 @@
 require 'formula'
 
 class Fltk < Formula
-  url 'http://ftp2.easysw.com/pub/fltk/1.1.10/fltk-1.1.10-source.tar.gz'
   homepage 'http://www.fltk.org/'
-  head 'http://ftp.easysw.com/pub/fltk/snapshots/fltk-1.3.x-r8411.tar.bz2'
-  if ARGV.build_head?
-    md5 '0c44ccd5d9b86c7afb2f402d5e0b56db'
-    depends_on 'jpeg'
-  else
-    md5 'e6378a76ca1ef073bcb092df1ef3ba55'
+  url 'http://ftp.easysw.com/pub/fltk/1.3.0/fltk-1.3.0-source.tar.gz'
+  md5 '44d5d7ba06afdd36ea17da6b4b703ca3'
+
+  devel do
+    url 'http://ftp.easysw.com/pub/fltk/snapshots/fltk-1.3.x-r9327.tar.bz2'
+    md5 '3205e5da58069ec7a1e487e6941cccd4'
+    version '1.3.x-r9327'
+  end
+
+  depends_on 'jpeg'
+
+  fails_with :clang do
+    build 318
+    cause "http://llvm.org/bugs/show_bug.cgi?id=10338"
   end
 
   def install
-    if ARGV.build_head?
-      ENV.libpng
-      system "autoconf"
-    end
+    ENV.libpng
     system "./configure", "--prefix=#{prefix}", "--enable-threads"
     system "make install"
   end

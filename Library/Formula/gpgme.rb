@@ -8,13 +8,18 @@ class Gpgme < Formula
   depends_on 'gnupg'
   depends_on 'libgpg-error'
   depends_on 'libassuan'
+  depends_on 'pth'
 
-  fails_with_llvm
+  fails_with :llvm do
+    build 2334
+  end
 
   def install
-    system "./configure", "--disable-debug", "--disable-dependency-tracking",
+    system "./configure", "--disable-dependency-tracking",
                           "--prefix=#{prefix}",
-                          "--disable-asm"
+                          "--enable-static",
+                          "--without-gpgsm",
+                          "--without-gpgconf"
     system "make"
     system "make check"
     system "make install"

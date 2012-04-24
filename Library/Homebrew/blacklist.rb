@@ -1,10 +1,15 @@
 def blacklisted? name
   case name.downcase
-  when 'vim', 'screen', /^rubygems?$/ then <<-EOS.undent
+  when /^vim?$/, 'screen', /^rubygems?$/ then <<-EOS.undent
     Apple distributes #{name} with OS X, you can find it in /usr/bin.
     EOS
   when 'libarchive', 'libpcap' then <<-EOS.undent
     Apple distributes #{name} with OS X, you can find it in /usr/lib.
+    EOS
+  when 'libiconv' then <<-EOS.undent
+    Apple distributes #{name} with OS X, you can find it in /usr/lib.
+    Some build scripts fail to detect it correctly, please check existing
+    formulae for solutions.
     EOS
   when 'libxml', 'libxlst' then <<-EOS.undent
     Apple distributes #{name} with OS X, you can find it in /usr/lib.
@@ -28,26 +33,31 @@ def blacklisted? name
 
     We recommend using a MacTeX distribution: http://www.tug.org/mactex/
     EOS
-  when 'mercurial', 'hg' then <<-EOS.undent
-    Install Mercurial with pip:
-
-        easy_install pip && pip install Mercurial
-
-    Or easy_install:
-
-        easy_install Mercurial
-    EOS
   when 'pip' then <<-EOS.undent
     Install pip with easy_install:
 
         easy_install pip
     EOS
-  when 'npm' then <<-EOS.undent
-    npm can be installed thusly by following the instructions at
-      http://npmjs.org/
+  when 'macruby' then <<-EOS.undent
+    MacRuby works better when you install their package:
+      http://www.macruby.org/downloads.html
 
-    To do it in one line, use this command:
-      curl http://npmjs.org/install.sh | sh
+    Although if you prefer, there is a formula in homebrew-alt.
+    EOS
+  when 'npm' then <<-EOS.undent
+    Homebrew does not provide npm because it is self-updating. To install it, first
+    `brew install nodejs' and then:
+
+        curl http://npmjs.org/install.sh | sh
+    EOS
+  when /(lib)?lzma/
+    "lzma is now part of the xz formula."
+  when 'xcode' then <<-EOS.undent
+    Xcode can be installed via the App Store (on Lion), or from:
+      http://connect.apple.com/
+
+    If you download from the App Store, make sure you run the installer
+    placed in /Applications after the download completes.
     EOS
   end
 end

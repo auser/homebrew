@@ -2,26 +2,34 @@ require 'formula'
 
 class Boost < Formula
   homepage 'http://www.boost.org'
-  url 'http://downloads.sourceforge.net/project/boost/boost/1.47.0/boost_1_47_0.tar.bz2'
-  md5 'a2dc343f7bc7f83f8941e47ed4a18200'
-  bottle 'https://downloads.sourceforge.net/project/machomebrew/Bottles/boost-1.47.0-bottle.tar.gz'
-  bottle_sha1 '4f3834fb471c3fac20c649bc4081ddde991e4b3b'
+  url 'http://downloads.sourceforge.net/project/boost/boost/1.49.0/boost_1_49_0.tar.bz2'
+  md5 '0d202cb811f934282dea64856a175698'
+
+  head 'http://svn.boost.org/svn/boost/trunk', :using => :svn
+
+  bottle do
+    sha1 '6b706780670a8bec5b3e0355f5dfeeaa37d9a41e' => :lion
+    sha1 '46945515d520009fbbc101e4ae19f28db1433752' => :snowleopard
+  end
+
+  depends_on "icu4c" if ARGV.include? "--with-icu"
+
+  fails_with :llvm do
+    build 2335
+    cause "Dropped arguments to functions when linking with boost"
+  end
 
   def options
     [
-      ['--with-mpi', "Enables MPI support"],
-      ["--universal", "Build universal binaries."]
+      ["--with-mpi", "Enable MPI support"],
+      ["--universal", "Build universal binaries"],
+      ["--without-python", "Build without Python"],
+      ["--with-icu", "Build regexp engine with icu support"],
     ]
   end
 
-  # Both clang and llvm-gcc provided by XCode 4.1 compile Boost 1.47.0 properly.
-  # Moreover, Apple LLVM compiler 2.1 is now among primary test compilers.
-  if MacOS.xcode_version < "4.1"
-    fails_with_llvm "LLVM-GCC causes errors with dropped arguments to functions when linking with boost"
-  end
-
   def install
-    if ARGV.build_universal?
+    if ARGV.build_universal? and not ARGV.include? "--without-python"
       archs = archs_for_command("python")
       unless archs.universal?
         opoo "A universal build was requested, but Python is not a universal build"
@@ -54,18 +62,28 @@ class Boost < Formula
       file.write "using mpi ;\n" if ARGV.include? '--with-mpi'
     end
 
+    # we specify libdir too because the script is apparently broken
+    bargs = ["--prefix=#{prefix}", "--libdir=#{lib}"]
+
+    if ARGV.include? "--with-icu"
+      icu4c_prefix = Formula.factory('icu4c').prefix
+      bargs << "--with-icu=#{icu4c_prefix}"
+    end
+
     args = ["--prefix=#{prefix}",
             "--libdir=#{lib}",
-            "-j#{Hardware.processor_count}",
+            "-j#{ENV.make_jobs}",
             "--layout=tagged",
             "--user-config=user-config.jam",
             "threading=multi",
             "install"]
 
     args << "address-model=32_64" << "architecture=x86" << "pch=off" if ARGV.include? "--universal"
+    args << "--without-python" if ARGV.include? "--without-python"
 
-    # we specify libdir too because the script is apparently broken
-    system "./bootstrap.sh", "--prefix=#{prefix}", "--libdir=#{lib}"
+    system "./bootstrap.sh", *bargs
     system "./bjam", *args
   end
 end
+
+__END__

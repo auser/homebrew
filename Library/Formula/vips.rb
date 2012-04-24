@@ -1,15 +1,9 @@
 require 'formula'
 
 class Vips < Formula
-  url 'http://www.vips.ecs.soton.ac.uk/supported/current/vips-7.24.7.tar.gz'
-  head 'http://www.vips.ecs.soton.ac.uk/development/7.26/vips-7.26.0-beta.tar.gz'
   homepage 'http://www.vips.ecs.soton.ac.uk/'
-
-  if ARGV.build_head?
-    md5 '5ecd1a88d5026950b05333191953b77a'
-  else
-    md5 '559bca1168afe62d2ee76d51ad7c91a6'
-  end
+  url 'http://www.vips.ecs.soton.ac.uk/supported/current/vips-7.28.0.tar.gz'
+  md5 '16429e3b82d869936312c0a35faaf5d0'
 
   depends_on 'pkg-config' => :build
   depends_on 'gettext'

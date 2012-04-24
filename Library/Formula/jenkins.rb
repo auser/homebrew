@@ -1,26 +1,29 @@
 require 'formula'
 
 class Jenkins < Formula
-  url 'http://mirrors.jenkins-ci.org/war/1.425/jenkins.war', :using => :nounzip
-  version '1.425'
-  md5 '9f7e6c8abe4d6414f340b8ebc1df3345'
   homepage 'http://jenkins-ci.org'
+  url 'http://mirrors.jenkins-ci.org/war/1.459/jenkins.war', :using => :nounzip
+  version '1.459'
+  md5 '7f7fa0110923158bcbd2268d39197750'
+  head 'https://github.com/jenkinsci/jenkins.git'
 
   def install
+    system "mvn clean install -pl war -am -DskipTests && mv war/target/jenkins.war ." if ARGV.build_head?
     lib.install "jenkins.war"
-    (prefix+'org.jenkins-ci.plist').write startup_plist
+    plist_path.write startup_plist
+    plist_path.chmod 0644
   end
 
   def caveats; <<-EOS
 If this is your first install, automatically load on login with:
     mkdir -p ~/Library/LaunchAgents
-    cp #{prefix}/org.jenkins-ci.plist ~/Library/LaunchAgents/
-    launchctl load -w ~/Library/LaunchAgents/org.jenkins-ci.plist
+    cp #{plist_path} ~/Library/LaunchAgents/
+    launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
 
-If this is an upgrade and you already have the org.jenkins-ci.plist loaded:
-    launchctl unload -w ~/Library/LaunchAgents/org.jenkins-ci.plist
-    cp #{prefix}/org.jenkins-ci.plist ~/Library/LaunchAgents/
-    launchctl load -w ~/Library/LaunchAgents/org.jenkins-ci.plist
+If this is an upgrade and you already have the #{plist_path.basename} loaded:
+    launchctl unload -w ~/Library/LaunchAgents/#{plist_path.basename}
+    cp #{plist_path} ~/Library/LaunchAgents/
+    launchctl load -w ~/Library/LaunchAgents/#{plist_path.basename}
 
 Or start it manually:
     java -jar #{lib}/jenkins.war
@@ -34,12 +37,13 @@ EOS
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>Jenkins</string>
+    <string>#{plist_name}</string>
     <key>ProgramArguments</key>
     <array>
     <string>/usr/bin/java</string>
     <string>-jar</string>
-    <string>#{lib}/jenkins.war</string>
+    <string>#{HOMEBREW_PREFIX}/lib/jenkins.war</string>
+    <string>--httpListenAddress=127.0.0.1</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
@@ -47,5 +51,4 @@ EOS
 </plist>
 EOS
   end
-
 end

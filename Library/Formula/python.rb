@@ -1,15 +1,5 @@
 require 'formula'
 
-# This formula for Python 2.7.x
-# Python 3.x is available as a separate formula:
-# $ brew install python3
-
-class Distribute < Formula
-  url 'http://pypi.python.org/packages/source/d/distribute/distribute-0.6.19.tar.gz'
-  md5 '45a17940eefee849d4cb8cc06d28d96f'
-end
-
-
 # Was a Framework build requested?
 def build_framework?; ARGV.include? '--framework'; end
 
@@ -18,11 +8,17 @@ def as_framework?
   (self.installed? and File.exists? prefix+"Frameworks/Python.framework") or build_framework?
 end
 
-class Python < Formula
-  url 'http://www.python.org/ftp/python/2.7.2/Python-2.7.2.tar.bz2'
-  homepage 'http://www.python.org/'
-  md5 'ba7b2f11ffdbf195ee0d111b9455a5bd'
+class Distribute < Formula
+  url 'http://pypi.python.org/packages/source/d/distribute/distribute-0.6.26.tar.gz'
+  md5 '841f4262a70107f85260362f5def8206'
+end
 
+class Python < Formula
+  homepage 'http://www.python.org/'
+  url 'http://www.python.org/ftp/python/2.7.3/Python-2.7.3.tar.bz2'
+  md5 'c57477edd6d18bd9eeca2f21add73919'
+
+  depends_on 'pkg-config' => :build
   depends_on 'readline' => :optional # Prefer over OS X's libedit
   depends_on 'sqlite'   => :optional # Prefer over OS X's older version
   depends_on 'gdbm'     => :optional
@@ -31,8 +27,7 @@ class Python < Formula
     [
       ["--framework", "Do a 'Framework' build instead of a UNIX-style build."],
       ["--universal", "Build for both 32 & 64 bit Intel."],
-      ["--static", "Build static libraries."],
-      ["--no-poll", "Remove HAVE_POLL.* options from build."]
+      ["--static", "Build static libraries."]
     ]
   end
 
@@ -40,6 +35,12 @@ class Python < Formula
   skip_clean ['bin', 'lib']
 
   def install
+    # Python requires -fwrapv for proper Decimal division with Clang. See:
+    # https://github.com/mxcl/homebrew/pull/10487
+    # http://stackoverflow.com/questions/7590137/dividing-decimals-yields-invalid-results-in-python-2-5-to-2-7
+    # https://trac.macports.org/changeset/87442
+    ENV.append_to_cflags "-fwrapv"
+
     if build_framework? and ARGV.include? "--static"
       onoe "Cannot specify both framework and static."
       exit 99
@@ -63,9 +64,9 @@ class Python < Formula
 
     system "./configure", *args
 
-    if ARGV.include? '--no-poll'
-      inreplace 'pyconfig.h', /.*?(HAVE_POLL[_A-Z]*).*/, '#undef \1'
-    end
+    # HAVE_POLL is "broken" on OS X
+    # See: http://trac.macports.org/ticket/18376
+    inreplace 'pyconfig.h', /.*?(HAVE_POLL[_A-Z]*).*/, '#undef \1'
 
     system "make"
     ENV.j1 # Installs must be serialized
@@ -83,6 +84,13 @@ class Python < Formula
 
     # Symlink the prefix site-packages into the cellar.
     ln_s prefix_site_packages, site_packages
+
+    # This is a fix for better interoperability with pyqt. See:
+    # https://github.com/mxcl/homebrew/issues/6176
+    if not as_framework?
+      (bin+"pythonw").make_link bin+"python"
+      (bin+"pythonw2.7").make_link bin+"python2.7"
+    end
 
     # Tell distutils-based installers where to put scripts
     scripts_folder.mkpath
@@ -111,7 +119,9 @@ class Python < Formula
     EOS
 
     general_caveats = <<-EOS.undent
-      A "distutils.cfg" has been written, specifing the install-scripts folder as:
+      A "distutils.cfg" has been written to:
+        #{effective_lib}/python2.7/distutils
+      specifing the install-scripts folder as:
         #{scripts_folder}
 
       If you install Python packages via "python setup.py install", easy_install, pip,
@@ -131,15 +141,20 @@ class Python < Formula
     return s
   end
 
-private
-
-  # Path helpers
-
+  # lib folder,taking into account whether we are a Framework build or not
   def effective_lib
     # If we're installed or installing as a Framework, then use that location.
     return prefix+"Frameworks/Python.framework/Versions/2.7/lib" if as_framework?
     # Otherwise use just 'lib'
     return lib
+  end
+
+  # include folder,taking into account whether we are a Framework build or not
+  def effective_include
+    # If we're installed or installing as a Framework, then use that location.
+    return prefix+"Frameworks/Python.framework/Versions/2.7/include" if as_framework?
+    # Otherwise use just 'include'
+    return include
   end
 
   # The Cellar location of site-packages
@@ -152,8 +167,13 @@ private
     HOMEBREW_PREFIX+"lib/python2.7/site-packages"
   end
 
+  # Where distribute will install executable scripts
   def scripts_folder
     HOMEBREW_PREFIX+"share/python"
   end
 
+  def test
+    # See: https://github.com/mxcl/homebrew/pull/10487
+    system "#{bin}/python -c 'from decimal import Decimal; print Decimal(4) / Decimal(2)'"
+  end
 end

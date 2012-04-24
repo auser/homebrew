@@ -1,12 +1,17 @@
 require 'formula'
 
 class Couchdb < Formula
-  url 'http://www.apache.org/dyn/closer.cgi?path=couchdb/1.1.0/apache-couchdb-1.1.0.tar.gz'
   homepage "http://couchdb.apache.org/"
-  md5 '907b763d3a14b6649bf0371ffa75a36b'
+  url 'http://www.apache.org/dyn/closer.cgi?path=couchdb/releases/1.2.0/apache-couchdb-1.2.0.tar.gz'
+  head 'http://git-wip-us.apache.org/repos/asf/couchdb.git'
+  md5 'a5cbbcaac288831b3d8a08b725657f10'
 
-  head 'http://svn.apache.org/repos/asf/couchdb/trunk'
+  devel do
+   url 'http://git-wip-us.apache.org/repos/asf/couchdb.git', :using => :git, :tag => '1.3.x'
+   version '1.3.x'
+  end
 
+  depends_on 'help2man' => :build
   depends_on 'spidermonkey'
   depends_on 'icu4c'
   depends_on 'erlang'
@@ -18,11 +23,12 @@ class Couchdb < Formula
                           "--localstatedir=#{var}",
                           "--sysconfdir=#{etc}",
                           "--with-erlang=#{HOMEBREW_PREFIX}/lib/erlang/usr/include",
-                          "--with-js-include=#{HOMEBREW_PREFIX}/include",
+                          "--with-js-include=#{HOMEBREW_PREFIX}/include/js",
                           "--with-js-lib=#{HOMEBREW_PREFIX}/lib"
     system "make"
     system "make install"
 
+    (prefix+"Library/LaunchDaemons/org.apache.couchdb.plist").chmod 0644
     (lib+'couchdb/bin/couchjs').chmod 0755
     (var+'lib/couchdb').mkpath
     (var+'log/couchdb').mkpath
@@ -34,7 +40,7 @@ class Couchdb < Formula
         curl http://127.0.0.1:5984/
 
       The reply should look like:
-        {"couchdb":"Welcome","version":"1.1.0"}
+        {"couchdb":"Welcome","version":"1.2.0"}
     EOS
   end
 
@@ -49,7 +55,13 @@ class Couchdb < Formula
         cp #{prefix}/Library/LaunchDaemons/org.apache.couchdb.plist ~/Library/LaunchAgents/
         launchctl load -w ~/Library/LaunchAgents/org.apache.couchdb.plist
 
-    Or start manually with:
+    Alternatively, automatically run on startup as a daemon with:
+        sudo launchctl list org.apache.couchdb \>/dev/null 2\>\&1 \&\& \\
+          sudo launchctl unload -w /Library/LaunchDaemons/org.apache.couchdb.plist
+        sudo cp #{prefix}/Library/LaunchDaemons/org.apache.couchdb.plist /Library/LaunchDaemons/
+        sudo launchctl load -w /Library/LaunchDaemons/org.apache.couchdb.plist
+
+    Or start manually as the current user with:
         couchdb
     EOS
   end

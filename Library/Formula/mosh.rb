@@ -8,11 +8,11 @@ class Mosh < Formula
   depends_on 'gmp'
   depends_on 'oniguruma'
 
-  fails_with_llvm
+  fails_with :llvm do
+    cause "Inline asm errors"
+  end
 
   def install
-    ENV.gcc_4_2 # GCC > 4.0 required
-
     system "./configure", "--disable-debug", "--disable-dependency-tracking",
                           "--prefix=#{prefix}"
     system "make"

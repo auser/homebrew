@@ -1,9 +1,11 @@
 require 'formula'
 
 class Bullet < Formula
-  url 'http://bullet.googlecode.com/files/bullet-2.77.tgz'
   homepage 'http://bulletphysics.org/wordpress/'
-  md5 '2f5074a1a29b618c672f1da4748e374b'
+  url 'http://bullet.googlecode.com/files/bullet-2.80-rev2531.tgz'
+  version '2.80'
+  sha1 '65a7dbb852cc3b92f40d79a2a368233442747228'
+  head 'http://bullet.googlecode.com/svn/trunk/'
 
   depends_on 'cmake' => :build
 
@@ -12,7 +14,7 @@ class Bullet < Formula
       ['--framework'  , "Build Frameworks"],
       ['--universal'  , "Build in universal mode"],
       ['--shared'     , "Build shared libraries"],
-      ['--build-demo' , "Build demo application"],
+      ['--build-demo' , "Build demo applications"],
       ['--build-extra', "Build extra library"]
     ]
   end

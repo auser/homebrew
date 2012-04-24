@@ -1,23 +1,19 @@
 require 'formula'
-require 'hardware'
 
 class Qt < Formula
-  url 'http://get.qt.nokia.com/qt/source/qt-everywhere-opensource-src-4.7.3.tar.gz'
-  md5 '49b96eefb1224cc529af6fe5608654fe'
   homepage 'http://qt.nokia.com/'
-  bottle 'https://downloads.sourceforge.net/project/machomebrew/Bottles/qt-4.7.3-bottle.tar.gz'
-  bottle_sha1 'a50123be33c96cba97d4bcee61f3859c7d52000e'
+  url 'http://get.qt.nokia.com/qt/source/qt-everywhere-opensource-src-4.8.1.tar.gz'
+  md5 '7960ba8e18ca31f0c6e4895a312f92ff'
+
+  bottle do
+    sha1 '6913b065d9e4647e4389269012bf9c7fe13dd726' => :snowleopard
+    sha1 'd523bfbc1c7e50cdd10b64b1b10db187ec7e7c2b' => :lion
+  end
 
   head 'git://gitorious.org/qt/qt.git', :branch => 'master'
 
-  def patches
-    [
-      # Fixes compilation on Lion or with llvm-gcc
-      # Should be unneeded in Qt 4.7.4.
-      "https://qt.gitorious.org/qt/qt/commit/91be1263b42a0a91daf3f905661e356e31482fd3?format=patch",
-      # Stop complaining about using Lion
-      "https://qt.gitorious.org/qt/qt/commit/1766bbdb53e1e20a1bbfb523bbbbe38ea7ab7b3d?format=patch"
-    ]
+  fails_with :clang do
+    build 318
   end
 
   def options
@@ -72,12 +68,14 @@ class Qt < Formula
     if ARGV.include? '--with-debug-and-release'
       args << "-debug-and-release"
       # Debug symbols need to find the source so build in the prefix
-      Dir.chdir '..'
-      mv "qt-everywhere-opensource-src-#{version}", "#{prefix}/src"
-      Dir.chdir "#{prefix}/src"
+      mv "../qt-everywhere-opensource-src-#{version}", "#{prefix}/src"
+      cd "#{prefix}/src"
     else
       args << "-release"
     end
+
+    # Needed for Qt 4.8.1 due to attempting to link moc with gcc.
+    ENV['LD'] = ENV['CXX']
 
     system "./configure", *args
     system "make"
@@ -97,16 +95,24 @@ class Qt < Formula
     # VirtualBox is an example of where this is needed
     # See: https://github.com/mxcl/homebrew/issues/issue/745
     cd prefix do
-      ln_s lib, "Frameworks"
+      ln_s lib, prefix + "Frameworks"
     end
 
-    # The pkg-config files installed suggest that geaders can be found in the
+    # The pkg-config files installed suggest that headers can be found in the
     # `include` directory. Make this so by creating symlinks from `include` to
     # the Frameworks' Headers folders.
     Pathname.glob(lib + '*.framework/Headers').each do |path|
       framework_name = File.basename(File.dirname(path), '.framework')
       ln_s path.realpath, include+framework_name
     end
+
+    Pathname.glob(bin + '*.app').each do |path|
+      mv path, prefix
+    end
+  end
+
+  def test
+    "#{bin}/qmake --version"
   end
 
   def caveats; <<-EOS.undent
